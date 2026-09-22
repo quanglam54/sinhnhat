@@ -85,12 +85,6 @@
   .age b{display:block;font-size:1.5rem;font-weight:700}
   .age span{display:block;font-size:.58rem;letter-spacing:.12em;margin-top:2px;opacity:.85}
 
-  /* đếm ngược / chúc mừng */
-  .cd{margin:30px auto 0;text-align:center;font-size:.95rem;color:var(--muted);
-    background:rgba(255,255,255,.045);border:1px solid rgba(255,182,210,.2);
-    border-radius:16px;padding:13px 18px;max-width:23rem}
-  .cd b{color:var(--rose2);font-weight:600}
-
   /* lời chúc */
   .letter{margin:30px 0 0;background:rgba(255,255,255,.045);
     border:1px solid rgba(255,182,210,.2);border-radius:22px;padding:26px 24px 24px;
@@ -112,7 +106,9 @@
   footer a{color:var(--muted);text-decoration:none;border-bottom:1px dotted rgba(195,167,181,.45)}
 
   /* nút nhạc */
-  #music{position:fixed;right:15px;bottom:15px;z-index:12;width:50px;height:50px;border-radius:50%;
+  /* huy hieu "Powered by Netlify" nam goc phai duoi va co z-index cao nhat,
+     nen nut nhac phai sang trai keo bi che mat */
+  #music{position:fixed;left:15px;bottom:15px;z-index:12;width:50px;height:50px;border-radius:50%;
     border:1px solid rgba(255,182,210,.35);background:rgba(32,17,27,.82);color:var(--rose2);
     font-size:1.2rem;cursor:pointer;display:none;place-items:center;
     backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px);
@@ -154,13 +150,14 @@
     <div class="age"><b id="ageNum">19</b><span>TUỔI</span></div>
   </div>
 
-  <div class="cd" id="cd"></div>
-
   <div class="letter">
-    <p class="lead">Chúc mừng sinh nhật, <em>Lan Anh</em> của&nbsp;anh&nbsp;🎂</p>
+    <p class="lead">Chúc mừng sinh nhật, <em>Lan&nbsp;Anh</em>&nbsp;🎂</p>
     <p>Hôm nay là ngày đẹp nhất trong năm — không phải vì trời đẹp, mà vì đúng ngày này nhiều năm trước, thế giới có thêm em.</p>
     <p>Cảm ơn em vì đã xuất hiện, vì những ngày bình thường nhất cũng thành đáng nhớ khi có em ở đó. Cảm ơn em vì đã kiên nhẫn, đã dịu dàng, và đã chọn ở lại bên anh.</p>
-    <p>Anh không chúc em điều gì to tát đâu. Anh chỉ mong tuổi mới của em nhẹ nhàng thôi: ngủ đủ giấc, ăn ngon miệng, bớt lo nghĩ, và luôn có người ở cạnh mỗi khi em cần — anh xin nhận phần đó.</p>
+    <p>Anh biết cái nghề em đang theo không hề nhẹ. Học điều dưỡng là học cách thức khuya, học cách chịu đau thay người khác, học cả những thứ mà người ngoài nhìn vào chẳng bao giờ thấy. Anh thương em ở chỗ đó — em chọn một việc mà phần vất vả thì mình giữ, phần dễ chịu thì để lại cho người ta.</p>
+    <p>Chúc em qua hết những kỳ thi, những ca trực, những buổi đi lâm sàng về mệt rã rời — rồi cầm được tấm bằng trên tay đúng như em mong. Ngày em mặc áo tốt nghiệp, anh nhất định có mặt.</p>
+    <p>Và anh tin em sẽ làm nghề rất tốt. Người bệnh có thể quên tên bác sĩ, nhưng họ nhớ rất lâu người đã ở cạnh lúc họ yếu nhất — người đỡ họ ngồi dậy, người nói một câu tử tế giữa đêm. Em vốn dịu dàng sẵn rồi, chỉ cần giữ được điều đó qua những ngày mệt nhất thôi.</p>
+    <p>Anh không chúc em điều gì to tát đâu. Anh chỉ mong tuổi mới của em nhẹ nhàng: ngủ đủ giấc, ăn ngon miệng, bớt lo nghĩ, và luôn có người ở cạnh mỗi khi em cần — anh xin nhận phần đó.</p>
     <p>Sinh nhật vui vẻ nhé, cô gái của anh. <em>Thương em nhiều lắm.</em></p>
     <div class="sign">— Anh ❤️</div>
   </div>
@@ -187,24 +184,15 @@
   var BIRTH_D = 28, BIRTH_M = 9, BIRTH_Y = 2007;   // 28/09/2007
   var VIDEO_ID = 'Wu8NeFXaoOc';                    // Khúc Hát Mừng Sinh Nhật — Phan Đinh Tùng
 
-  /* ---------- tuổi + đếm ngược ---------- */
+  /* ---------- tuổi hiển thị trên huy hiệu ---------- */
   function startOfDay(d){ return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
   var today = startOfDay(new Date());
   var thisYearBd = new Date(today.getFullYear(), BIRTH_M-1, BIRTH_D);
-  var isBirthday = today.getTime() === thisYearBd.getTime();
   var next = thisYearBd >= today ? thisYearBd : new Date(today.getFullYear()+1, BIRTH_M-1, BIRTH_D);
-  var days = Math.round((next - today) / 86400000);
   var turning = next.getFullYear() - BIRTH_Y;      // tuổi tròn vào sinh nhật sắp tới
 
   var el = document.getElementById('ageNum');
   if (el) el.textContent = String(turning);
-
-  var cd = document.getElementById('cd');
-  if (cd){
-    if (isBirthday)      cd.innerHTML = '🎉 Hôm nay chính là ngày của em — <b>tròn ' + turning + ' tuổi</b> rồi đó!';
-    else if (days === 1) cd.innerHTML = 'Còn <b>đúng 1 ngày</b> nữa là tới sinh nhật em 🎈';
-    else                 cd.innerHTML = 'Còn <b>' + days + ' ngày</b> nữa là tới sinh nhật em 🎈';
-  }
 
   /* ---------- tim bay ---------- */
   var ICONS = ['❤️','💕','🌸','✨','💗','🤍','🎈'];
