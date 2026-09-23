@@ -117,8 +117,10 @@
   #music:active{transform:scale(.9)}
   #music.playing{animation:spin 6s linear infinite}
   @keyframes spin{to{transform:rotate(360deg)}}
-  /* iframe phải nằm trong khung nhìn, nếu đẩy ra ngoài màn hình vài trình duyệt sẽ chặn phát */
-  #yt{position:fixed;left:0;bottom:0;width:1px;height:1px;opacity:.01;pointer-events:none;z-index:0}
+  /* iframe phải nằm trong khung nhìn VÀ có kích thước thật:
+     điện thoại chặn phát tiếng với player 1x1px hoặc bị ẩn */
+  #yt{position:fixed;left:0;bottom:0;width:180px;height:101px;opacity:.02;
+      pointer-events:none;z-index:0;border:0}
 
   @media (prefers-reduced-motion:reduce){
     *{animation:none!important;transition:none!important}
@@ -218,10 +220,28 @@
     setInterval(heart, 900);
   }
 
-  /* ---------- nhạc nền ---------- */
-  var player = null, ready = false, wantPlay = false;
-  var btn = document.getElementById('music');
+  /* ---------- nhạc nền ----------
+     Điện thoại chặt hơn máy tính rất nhiều: iframe YouTube là khung khác miền nên
+     cú chạm ở trang cha KHÔNG được tính cho nó. Cách chắc ăn nhất là file mp3 để
+     cùng thư mục (nhac.mp3) — nếu có thì dùng, không có thì quay về YouTube. */
+  var AUDIO_FILE = 'nhac.mp3';
 
+  var btn = document.getElementById('music');
+  var player = null, ready = false, wantPlay = false;
+  var localOK = true, playing = false;      // mặc định tin là có mp3; chỉ tắt khi nạp lỗi
+
+  /* --- 1) file mp3 nội bộ (đường chính) --- */
+  var bgm = document.createElement('audio');
+  bgm.loop = true; bgm.preload = 'auto'; bgm.volume = .55;
+  bgm.setAttribute('playsinline',''); bgm.setAttribute('webkit-playsinline','');
+  bgm.src = AUDIO_FILE;
+  bgm.addEventListener('loadedmetadata', showBtn);
+  bgm.addEventListener('error', function(){ localOK = false; });   // thiếu file → dùng YouTube
+  bgm.addEventListener('play',  function(){ playing = true;  paint(); });
+  bgm.addEventListener('pause', function(){ playing = false; paint(); });
+  document.body.appendChild(bgm);
+
+  /* --- 2) YouTube (dự phòng) --- */
   window.onYouTubeIframeAPIReady = function(){
     player = new YT.Player('yt', {
       videoId: VIDEO_ID,
@@ -229,14 +249,17 @@
       events: {
         onReady: function(e){
           ready = true;
-          e.target.setVolume(55);
-          if (btn) btn.classList.add('show');
-          if (wantPlay) e.target.playVideo();     // đã bấm mở trước khi player sẵn sàng
+          showBtn();
+          if (wantPlay) ytPlay();                 // đã bấm mở trước khi player sẵn sàng
         },
         onStateChange: function(e){
-          if (!btn) return;
-          if (e.data === YT.PlayerState.PLAYING) btn.classList.add('playing');
-          else btn.classList.remove('playing');
+          playing = (e.data === YT.PlayerState.PLAYING);
+          /* bật tiếng lại sau khi đã chạy được: mẹo mute→play→unMute giúp
+             qua được chính sách tự phát của trình duyệt di động */
+          if (playing && player.isMuted && player.isMuted()){
+            player.unMute(); player.setVolume(55);
+          }
+          paint();
         }
       }
     });
@@ -248,16 +271,47 @@
     s.src = 'https://www.youtube.com/iframe_api';
     document.head.appendChild(s);
   })();
+
+  function showBtn(){ if (btn) btn.classList.add('show'); }
+  setTimeout(showBtn, 2500);        // webview trong app có thể chặn hẳn YouTube → vẫn cho bấm thử
+  function paint(){
+    if (!btn) return;
+    btn.classList.toggle('playing', playing);
+  }
+  function ytPlay(){
+    if (!ready || !player) return;
+    try { player.mute(); } catch(err){}
+    player.playVideo();
+  }
   function playMusic(){
     wantPlay = true;
-    if (ready && player && player.playVideo) player.playVideo();
+    if (localOK){
+      var p = bgm.play();
+      /* trình duyệt từ chối phát mp3 → mới quay sang YouTube */
+      if (p && p.catch) p.catch(function(){ ytPlay(); });
+      return;
+    }
+    ytPlay();
   }
-  if (btn) btn.addEventListener('click', function(){
-    if (!ready || !player) return;
-    var st = player.getPlayerState();
-    if (st === YT.PlayerState.PLAYING) player.pauseVideo();
-    else player.playVideo();
+  function pauseMusic(){
+    wantPlay = false;
+    if (localOK) bgm.pause();
+    else if (ready && player) player.pauseVideo();
+  }
+
+  if (btn) btn.addEventListener('click', function(ev){
+    ev.stopPropagation();
+    if (playing) pauseMusic(); else playMusic();
   });
+
+  /* Nếu lần chạm đầu bị chặn, mọi cú chạm sau đó trên màn hình đều thử phát lại.
+     Người xem không cần biết gì — chạm vào ảnh, vào lời chúc là nhạc lên. */
+  function retry(){
+    if (!wantPlay || playing) return;
+    playMusic();
+  }
+  document.addEventListener('touchend', retry, {passive:true});
+  document.addEventListener('click', retry);
 
   /* ---------- mở thiệp ---------- */
   var gate = document.getElementById('gate');
